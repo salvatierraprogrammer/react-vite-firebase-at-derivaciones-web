@@ -6,7 +6,6 @@ import {
   TableCell,
   TableBody,
   Box,
-  Typography,
   Chip,
   Button,
   TextField,
@@ -21,9 +20,9 @@ import ATProfileModal from "./ATProfileModal";
 export default function AtsTable({ ats }) {
   const [selectedAT, setSelectedAT] = useState(null);
   const [open, setOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(10); // Mostrar 10 inicialmente
-  const [zonaFiltro, setZonaFiltro] = useState(""); // Filtro por zona
-  const [busqueda, setBusqueda] = useState(""); // Buscador de texto
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [zonaFiltro, setZonaFiltro] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const handleVerPerfil = (at) => {
     setSelectedAT(at);
@@ -47,22 +46,25 @@ export default function AtsTable({ ats }) {
     (at) => at.genero === "No binario" || at.genero === "Prefiere no decirlo"
   ).length;
 
-  // 🔹 Filtrar por zona y búsqueda
-  const atsFiltrados = ats.filter((at) => {
-    const cumpleZona = zonaFiltro ? at.zonas?.includes(zonaFiltro) : true;
-    const cumpleBusqueda = busqueda
-      ? at.nombre.toLowerCase().includes(busqueda.toLowerCase())
-      : true;
-    return cumpleZona && cumpleBusqueda;
-  });
+  // 🔹 Filtrar por zona y búsqueda, y ordenar por createdAt descendente
+  const atsFiltrados = ats
+    .filter((at) => {
+      const cumpleZona = zonaFiltro ? at.zonas?.includes(zonaFiltro) : true;
+      const cumpleBusqueda = busqueda
+        ? at.nombre.toLowerCase().includes(busqueda.toLowerCase())
+        : true;
+      return cumpleZona && cumpleBusqueda;
+    })
+    .sort((a, b) => {
+      // Ordenar por createdAt descendente: los más recientes primero
+      const fechaA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const fechaB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return fechaB - fechaA;
+    });
 
-  // 🔹 AT a mostrar según el límite visible
   const atsVisibles = atsFiltrados.slice(0, visibleCount);
 
-  // 🔹 Zonas únicas para el select
-  const zonasUnicas = [
-    ...new Set(ats.flatMap((at) => at.zonas || [])),
-  ].sort();
+  const zonasUnicas = [...new Set(ats.flatMap((at) => at.zonas || []))].sort();
 
   return (
     <Box p={3}>
@@ -72,7 +74,10 @@ export default function AtsTable({ ats }) {
         <Chip label={`Femenino: ${femenino}`} color="success" />
         <Chip label={`Masculino: ${masculino}`} color="info" />
         {noBinario > 0 && (
-          <Chip label={`No binario / Prefiere no decirlo: ${noBinario}`} color="warning" />
+          <Chip
+            label={`No binario / Prefiere no decirlo: ${noBinario}`}
+            color="warning"
+          />
         )}
       </Box>
 

@@ -30,7 +30,7 @@ function RegistroAT() {
   const [monotributo, setMonotributo] = useState("");
   const [genero, setGenero] = useState("");
   const [estadoEducativo, setEstadoEducativo] = useState("");
-
+  const [submitting, setSubmitting] = useState(false);
     /* 🛡️ SEGUROS */
   const [respCivil, setRespCivil] = useState(false);
   const [seguroAP, setSeguroAP] = useState(false);
@@ -44,56 +44,57 @@ function RegistroAT() {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (submitting) return; // evita doble envío
+  setSubmitting(true);
 
-    try {
-      await addDoc(collection(db, "at_registros"), {
-        nombre: e.target.nombre.value,
-        genero,
-        whatsapp: e.target.whatsapp.value.replace(/\s+/g, ""),
-        email: e.target.email?.value || "",
-        certificadoAT,
-        certificadoResolucion: e.target.certificadoResolucion.value,
-        especializaciones: e.target.especializaciones.value,
-        monotributo,
-          seguros: {
-          responsabilidadCivil: respCivil,
-          accidentesPersonales: seguroAP,
-          puedeGestionar: seguroGestionar,
-        },
-        zonas,
-     
-        estadoEducativo: estadoEducativo,
-        estudianteCarrera: e.target.estudianteCarrera?.value || "",
-        carreraFinalizada: e.target.carreraFinalizada?.value || "",
-        disponibilidad,
-        tiposAcompanamiento: tipos,
-        experiencia: e.target.experiencia.value,
-        estado: "activo",
-        zonaInterior: e.target.zonaInterior?.value || "",
-        createdAt: serverTimestamp(),
-      });
+  try {
+    await addDoc(collection(db, "at_registros"), {
+      nombre: e.target.nombre.value,
+      genero,
+      whatsapp: e.target.whatsapp.value.replace(/\s+/g, ""),
+      email: e.target.email?.value || "",
+      certificadoAT,
+      certificadoResolucion: e.target.certificadoResolucion.value,
+      especializaciones: e.target.especializaciones.value,
+      monotributo,
+      seguros: {
+        responsabilidadCivil: respCivil,
+        accidentesPersonales: seguroAP,
+        puedeGestionar: seguroGestionar,
+      },
+      zonas,
+      estadoEducativo,
+      estudianteCarrera: e.target.estudianteCarrera?.value || "",
+      carreraFinalizada: e.target.carreraFinalizada?.value || "",
+      disponibilidad,
+      tiposAcompanamiento: tipos,
+      experiencia: e.target.experiencia.value,
+      estado: "activo",
+      zonaInterior: e.target.zonaInterior?.value || "",
+      createdAt: serverTimestamp(), // 🔹 importante para ordenar después
+    });
 
+    e.target.reset();
+    setGenero("");
+    setTipos([]);
+    setDisponibilidad([]);
+    setZonas([]);
+    setCertificadoAT(false);
+    setMonotributo("");
+    setRespCivil(false);
+    setSeguroAP(false);
+    setSeguroGestionar(false);
 
-    
-      navigate("/gracias-at");
- 
-      e.target.reset();
-      setGenero("");
-      setTipos([]);
-      setDisponibilidad([]);
-      setZonas([]);
-      setCertificadoAT(false);
-      setMonotributo("");
-      setRespCivil(false);
-      setSeguroAP(false);
-      setSeguroGestionar(false);
-    } catch (error) {
-      console.error(error);
-      alert("Error al enviar el registro");
-    }
-  };
+    navigate("/gracias-at");
+  } catch (error) {
+    console.error(error);
+    alert("Error al enviar el registro");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <Container   maxWidth="sm">
@@ -408,23 +409,24 @@ function RegistroAT() {
             label="Acepto recibir consultas por WhatsApp"
           />
 
-          <Button
-            type="submit"
-            fullWidth
-            size="large"
-            sx={{
-              mt: 3,
-              py: 1.4,
-              borderRadius: 2,
-              backgroundColor: colors.primary,
-              color: "#fff",
-              "&:hover": {
-                backgroundColor: colors.textPrimary,
-              },
-            }}
-          >
-            Registrarme como AT
-          </Button>
+      <Button
+        type="submit"
+        fullWidth
+        size="large"
+        disabled={submitting} // 👈 evita doble envío
+        sx={{
+          mt: 3,
+          py: 1.4,
+          borderRadius: 2,
+          backgroundColor: colors.primary,
+          color: "#fff",
+          "&:hover": {
+            backgroundColor: colors.textPrimary,
+          },
+        }}
+      >
+        {submitting ? "Enviando..." : "Registrarme como AT"}
+      </Button>
         </Box>
       </Paper>
     </Container>

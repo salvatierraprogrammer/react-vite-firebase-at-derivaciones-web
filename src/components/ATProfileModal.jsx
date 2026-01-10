@@ -19,6 +19,8 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import SchoolIcon from "@mui/icons-material/School";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 export default function ATProfileModal({ at, open, onClose }) {
   if (!at) return null;
@@ -26,6 +28,7 @@ export default function ATProfileModal({ at, open, onClose }) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Perfil completo – {at.nombre}</DialogTitle>
+      
       <DialogContent dividers>
         <Box display="flex" flexDirection="column" gap={1.5}>
           {/* Datos básicos */}
@@ -58,6 +61,29 @@ export default function ATProfileModal({ at, open, onClose }) {
 
           <Box display="flex" alignItems="center" gap={1}>
             <WorkIcon color="action" /> <Typography>Monotributo: {at.monotributo || "-"}</Typography>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Estado educativo */}
+          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+            <SchoolIcon fontSize="small" sx={{ mr: 0.5 }} /> Educación
+          </Typography>
+          <Box sx={{ ml: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+            <Typography>
+              Estado educativo: {at.estadoEducativo || "No informado"}
+            </Typography>
+
+            {at.estadoEducativo === "estudiante" && at.estudianteCarrera && (
+              <Typography sx={{ ml: 2 }}>
+                Está estudiando: {at.estudianteCarrera}
+              </Typography>
+            )}
+            {at.estadoEducativo === "graduado" && at.carreraFinalizada && (
+              <Typography sx={{ ml: 2 }}>
+                Carrera finalizada: {at.carreraFinalizada}
+              </Typography>
+            )}
           </Box>
 
           <Divider sx={{ my: 2 }} />
