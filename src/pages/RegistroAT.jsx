@@ -29,6 +29,7 @@ function RegistroAT() {
   const [certificadoAT, setCertificadoAT] = useState(false);
   const [monotributo, setMonotributo] = useState("");
   const [genero, setGenero] = useState("");
+  const [estadoEducativo, setEstadoEducativo] = useState("");
 
     /* 🛡️ SEGUROS */
   const [respCivil, setRespCivil] = useState(false);
@@ -62,6 +63,10 @@ function RegistroAT() {
           puedeGestionar: seguroGestionar,
         },
         zonas,
+     
+        estadoEducativo: estadoEducativo,
+        estudianteCarrera: e.target.estudianteCarrera?.value || "",
+        carreraFinalizada: e.target.carreraFinalizada?.value || "",
         disponibilidad,
         tiposAcompanamiento: tipos,
         experiencia: e.target.experiencia.value,
@@ -73,7 +78,7 @@ function RegistroAT() {
 
     
       navigate("/gracias-at");
-      alert("Registro enviado correctamente 🙌");
+ 
       e.target.reset();
       setGenero("");
       setTipos([]);
@@ -164,6 +169,54 @@ function RegistroAT() {
           fullWidth
           sx={{ mb: 2 }}
         />
+      {/* NUEVO CAMPO ESTADO EDUCATIVO */}
+      <FormControl sx={{ mb: 3 }}>
+        <InputLabel shrink>Estado educativo</InputLabel>
+        <RadioGroup
+          value={estadoEducativo}
+          onChange={(e) => setEstadoEducativo(e.target.value)}
+        >
+          <FormControlLabel
+            value="estudiante"
+            control={<Radio />}
+            label="Actualmente estudiante"
+          />
+          <FormControlLabel
+            value="graduado"
+            control={<Radio />}
+            label="Carrera finalizada / Graduado"
+          />
+          <FormControlLabel
+            value="no"
+            control={<Radio />}
+            label="No aplica"
+          />
+        </RadioGroup>
+
+        {/* Campo extra para especificar qué estudia si está estudiando */}
+        {estadoEducativo === "estudiante" && (
+          <TextField
+            name="estudianteCarrera"
+            label="Nombre de la carrera o curso que estás realizando"
+            fullWidth
+            required
+            sx={{ mt: 2 }}
+            placeholder="Ej: Psicología, Terapia Ocupacional"
+          />
+        )}
+
+        {/* Campo extra para especificar de qué se recibió si ya terminó */}
+        {estadoEducativo === "graduado" && (
+          <TextField
+            name="carreraFinalizada"
+            label="Nombre de la carrera finalizada"
+            fullWidth
+            required
+            sx={{ mt: 2 }}
+            placeholder="Ej: Psicología, Terapia Ocupacional"
+          />
+        )}
+      </FormControl>
 
           {/* CERTIFICADO */}
           <FormControlLabel
