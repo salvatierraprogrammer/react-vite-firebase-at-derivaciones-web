@@ -10,45 +10,77 @@ import {
   FormControlLabel,
   MenuItem,
   Divider,
+  FormControl,
+  FormGroup,
+  InputLabel,
+  RadioGroup,
+  Radio,
+  Select
 } from "@mui/material";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import logo from "../assets/logo.png";
 import { colors } from "../styles";
+import { useState } from "react";
 
 function Home() {
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    try {
-      await addDoc(collection(db, "solicitudes_at"), {
-        nombre: e.target.nombre.value,
-        whatsapp: e.target.whatsapp.value.replace(/\D/g, ""),
-        zona: e.target.zona.value,
-        edad: e.target.edad.value,
-        tipo: e.target.tipo.value,
-        dias: e.target.dias.value,
-        horario: e.target.horario.value,
-        estado: "nuevo",
-        createdAt: serverTimestamp(),
-      });
-
-      alert(
-        "Solicitud enviada 🙌\nTe contactaremos por WhatsApp para confirmar y ofrecerte opciones."
+  const [tipoAcompanamiento, setTipoAcompanamiento] = useState("");
+  const [tipoPrestacion, setTipoPrestacion] = useState("");
+  const [zona, setZona] = useState("");
+  const [generoAcompanado, setGeneroAcompanado] = useState("");
+  const [generoAT, setGeneroAT] = useState("");
+    const handleCheckboxArray = (value, array, setArray) => {
+      setArray(
+        array.includes(value)
+          ? array.filter((v) => v !== value)
+          : [...array, value]
       );
-      e.target.reset();
-    } catch (error) {
-      console.error(error);
-      alert("Error al enviar la solicitud");
-    }
-  };
+    };
 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // ✅ VALIDACIONES
+    if (!zona) return alert("Seleccioná una zona");
+    if (!tipoAcompanamiento) return alert("Seleccioná un tipo de acompañamiento");
+    if (!tipoPrestacion) return alert("Seleccioná un tipo de prestación");
+
+  try {
+    await addDoc(collection(db, "solicitudes_at"), {
+      nombre: e.target.nombre.value,
+      whatsapp: e.target.whatsapp.value.replace(/\D/g, ""),
+      zona,
+      zonaInterior: e.target.zonaInterior?.value || "",
+      edad: e.target.edad.value,
+      diagnostico: e.target.diagnostico.value,
+      tipoAcompanamiento,
+      tipoPrestacion,
+      generoAcompanado,
+      generoAT,
+      horariosDetalle: e.target.horariosDetalle.value,
+      descripcion: e.target.descripcion.value,
+      estado: "nuevo",
+      createdAt: serverTimestamp(),
+    });
+    alert("Solicitud enviada 🙌\nTe contactaremos por WhatsApp");
+
+    e.target.reset();
+    setTipoAcompanamiento("");
+    setTipoPrestacion("");
+    setZona("");
+    setGeneroAcompanado("");
+    setGeneroAT("");
+  } catch (error) {
+    console.error(error);
+    alert("Error al enviar la solicitud");
+  }
+};
   return (
     <Box
       sx={{
         minHeight: "100vh",
         backgroundColor: colors.background,
-        
         display: "flex",
         alignItems: "center",
       }}
@@ -64,11 +96,7 @@ function Home() {
         >
           {/* LOGO */}
           <Box textAlign="center" mb={2}>
-            <img
-              src={logo}
-              alt="Logo"
-              style={{ width: 110, borderRadius: 12 }}
-            />
+            <img src={logo} alt="Logo" style={{ width: 110 }} />
           </Box>
 
           <Typography
@@ -86,8 +114,7 @@ function Home() {
             color="text.secondary"
             mb={3}
           >
-            Completá el formulario y te conectamos con AT disponibles según tu
-            necesidad.
+            Completá el formulario y te contactamos con AT disponibles.
           </Typography>
 
           <Divider sx={{ mb: 3 }} />
@@ -110,21 +137,55 @@ function Home() {
               helperText="Solo número, sin +54 ni 9"
               sx={{ mb: 2 }}
             />
+          <FormControl sx={{ mb: 3 }}>
+            <InputLabel shrink>Zona donde buscás Acompañante Terapeutico</InputLabel>
 
-            <TextField
-              select
-              label="Zona / Ciudad"
-              name="zona"
-              fullWidth
-              required
-              sx={{ mb: 2 }}
+            <RadioGroup
+              value={zona}
+              onChange={(e) => setZona(e.target.value)}
             >
-              <MenuItem value="CABA">CABA</MenuItem>
-              <MenuItem value="Zona Norte">Zona Norte</MenuItem>
-              <MenuItem value="Zona Oeste">Zona Oeste</MenuItem>
-              <MenuItem value="Zona Sur">Zona Sur</MenuItem>
-              <MenuItem value="Interior">Interior / Otras provincias</MenuItem>
-            </TextField>
+              {[
+                "CABA",
+                "Zona Norte",
+                "Zona Oeste",
+                "Zona Sur",
+                "Interior / Otras provincias",
+              ].map((item) => (
+                <FormControlLabel
+                  key={item}
+                  value={item}
+                  control={<Radio />}
+                  label={item}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+
+          {/* Campo extra SOLO si selecciona Interior */}
+          {zona === "Interior / Otras provincias" && (
+            <TextField
+              name="zonaInterior"
+              label="Provincia y localidad"
+              placeholder="Ej: Córdoba capital, Mendoza – Godoy Cruz"
+              fullWidth
+              sx={{ mb: 3 }}
+            />
+          )}
+           <Divider sx={{ mb: 3 }} />
+           <FormControl fullWidth sx={{ mb: 3 }}>
+            <InputLabel id="genero-acomp-label">Género del acompañado</InputLabel>
+            <Select
+              labelId="genero-acomp-label"
+              label="Género del acompañado"
+              value={generoAcompanado}
+              onChange={(e) => setGeneroAcompanado(e.target.value)}
+              required
+            >
+              <MenuItem value="Femenino">Femenino</MenuItem>
+              <MenuItem value="Masculino">Masculino</MenuItem>
+              <MenuItem value="Prefiero no decirlo">Prefiero no decirlo</MenuItem>
+            </Select>
+          </FormControl>
 
             <TextField
               label="Edad del acompañado"
@@ -136,31 +197,98 @@ function Home() {
             />
 
             <TextField
-              label="Tipo de acompañamiento"
-              name="tipo"
+              label="Diagnóstico / situación"
+              name="diagnostico"
               fullWidth
               required
-              placeholder="Ej: niñez, TEA, salud mental, adulto mayor, escolar"
-              sx={{ mb: 2 }}
+              placeholder="Ej: TEA, salud mental, discapacidad, etc."
+              sx={{ mb: 3 }}
             />
 
-            <TextField
-              label="Días requeridos"
-              name="dias"
-              fullWidth
-              required
-              placeholder="Ej: lunes a viernes"
-              sx={{ mb: 2 }}
-            />
+            {/* TIPOS DE ACOMPAÑAMIENTO */}
+          <FormControl sx={{ mb: 3 }}>
+            <InputLabel shrink>Tipo de acompañamiento</InputLabel>
 
-            <TextField
-              label="Horario aproximado"
-              name="horario"
-              fullWidth
-              required
-              placeholder="Ej: 13 a 18 hs"
-              sx={{ mb: 2 }}
-            />
+            <RadioGroup
+              value={tipoAcompanamiento}
+              onChange={(e) => setTipoAcompanamiento(e.target.value)}
+            >
+              {[
+                "Niñes",
+                "Adolescentes",
+                "Adulto mayor",
+                "Integración Escolar",
+                "Discapacidad",
+                "Salud mental",
+              ].map((item) => (
+                <FormControlLabel
+                  key={item}
+                  value={item}
+                  control={<Radio />}
+                  label={item}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+
+            {/* TIPO DE PRESTACIÓN */}
+          <FormControl sx={{ mb: 3 }}>
+            <InputLabel shrink>Tipo de prestación</InputLabel>
+
+            <RadioGroup
+              value={tipoPrestacion}
+              onChange={(e) => setTipoPrestacion(e.target.value)}
+            >
+              {[
+                "AT por obra social / prepaga",
+                "AT institucional",
+                "AT particular (pago privado)",
+              ].map((item) => (
+                <FormControlLabel
+                  key={item}
+                  value={item}
+                  control={<Radio />}
+                  label={item}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel id="genero-at-label">Género del AT</InputLabel>
+              <Select
+                labelId="genero-at-label"
+                label="Género del AT"
+                value={generoAT}
+                onChange={(e) => setGeneroAT(e.target.value)}
+                required
+              >
+                <MenuItem value="Indistinto">Indistinto / No relevante</MenuItem>
+                <MenuItem value="Femenino">Femenino</MenuItem>
+                <MenuItem value="Masculino">Masculino</MenuItem>
+                <MenuItem value="No binario">No binario</MenuItem>
+              </Select>
+          </FormControl>
+
+          <TextField
+            label="Detalle de días y horarios"
+            name="horariosDetalle"
+            fullWidth
+            required
+            multiline
+            rows={3}
+            placeholder="Ej: Lunes y martes de 14 a 20 hs. Miércoles y viernes de 16 a 23 hs."
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            label="Descripción breve del acompañamiento"
+            name="descripcion"
+            fullWidth
+            multiline
+            rows={4}
+            placeholder="Contexto del caso, necesidades principales, objetivos del acompañamiento."
+            sx={{ mb: 2 }}
+          />
 
             <FormControlLabel
               control={<Checkbox required />}
@@ -188,11 +316,7 @@ function Home() {
 
           <Divider sx={{ my: 3 }} />
 
-          <Typography
-            variant="body2"
-            align="center"
-            color="text.secondary"
-          >
+          <Typography variant="body2" align="center" color="text.secondary">
             ¿Sos Acompañante Terapéutico?{" "}
             <Link href="/registro-at" underline="hover">
               Registrate acá

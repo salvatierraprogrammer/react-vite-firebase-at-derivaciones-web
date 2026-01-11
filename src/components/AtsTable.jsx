@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Table,
   TableHead,
@@ -14,8 +13,13 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
+import { useState } from "react";
 import ATRow from "./ATRow";
 import ATProfileModal from "./ATProfileModal";
+import PersonIcon from "@mui/icons-material/Person";
+import WcIcon from "@mui/icons-material/Wc";
+import TransgenderIcon from "@mui/icons-material/Transgender";
+import GroupsIcon from "@mui/icons-material/Groups";
 
 export default function AtsTable({ ats }) {
   const [selectedAT, setSelectedAT] = useState(null);
@@ -38,11 +42,17 @@ export default function AtsTable({ ats }) {
     setVisibleCount((prev) => prev + 10);
   };
 
-  // 🔹 Conteo de géneros
-  const totalAT = ats.length;
-  const femenino = ats.filter((at) => at.genero === "Femenino").length;
-  const masculino = ats.filter((at) => at.genero === "Masculino").length;
-  const noBinario = ats.filter(
+  // 🔹 Filtrar duplicados por WhatsApp antes de calcular totales
+  const atsUnicos = ats.filter(
+    (at, index, self) =>
+      index === self.findIndex((t) => t.whatsapp === at.whatsapp)
+  );
+
+  // 🔹 Conteo de géneros usando atsUnicos
+  const totalAT = atsUnicos.length;
+  const femenino = atsUnicos.filter((at) => at.genero === "Femenino").length;
+  const masculino = atsUnicos.filter((at) => at.genero === "Masculino").length;
+  const noBinario = atsUnicos.filter(
     (at) => at.genero === "No binario" || at.genero === "Prefiere no decirlo"
   ).length;
 
@@ -55,10 +65,17 @@ export default function AtsTable({ ats }) {
         : true;
       return cumpleZona && cumpleBusqueda;
     })
+    .filter(
+      (at, index, self) =>
+        index === self.findIndex((t) => t.whatsapp === at.whatsapp)
+    )
     .sort((a, b) => {
-      // Ordenar por createdAt descendente: los más recientes primero
-      const fechaA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-      const fechaB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      const fechaA = a.createdAt?.toDate
+        ? a.createdAt.toDate()
+        : new Date(a.createdAt);
+      const fechaB = b.createdAt?.toDate
+        ? b.createdAt.toDate()
+        : new Date(b.createdAt);
       return fechaB - fechaA;
     });
 
@@ -70,11 +87,24 @@ export default function AtsTable({ ats }) {
     <Box p={3}>
       {/* ===== RESUMEN ===== */}
       <Box mb={2} display="flex" gap={2} flexWrap="wrap">
-        <Chip label={`Total AT: ${totalAT}`} color="primary" />
-        <Chip label={`Femenino: ${femenino}`} color="success" />
-        <Chip label={`Masculino: ${masculino}`} color="info" />
+        <Chip
+          icon={<GroupsIcon />}
+          label={`Total AT: ${totalAT}`}
+          color="primary"
+        />
+        <Chip
+          icon={<WcIcon />}
+          label={`Femenino: ${femenino}`}
+          color="success"
+        />
+        <Chip
+          icon={<PersonIcon />}
+          label={`Masculino: ${masculino}`}
+          color="info"
+        />
         {noBinario > 0 && (
           <Chip
+            icon={<TransgenderIcon />}
             label={`No binario / Prefiere no decirlo: ${noBinario}`}
             color="warning"
           />
