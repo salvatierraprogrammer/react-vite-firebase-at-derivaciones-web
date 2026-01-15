@@ -22,14 +22,15 @@ import { db } from "../firebase/firebase";
 import logo from "../assets/logo.png";
 import { colors } from "../styles";
 import { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 function SolicitarAT() {
   const [tipoAcompanamiento, setTipoAcompanamiento] = useState("");
   const [tipoPrestacion, setTipoPrestacion] = useState("");
   const [zona, setZona] = useState("");
   const [generoAcompanado, setGeneroAcompanado] = useState("");
   const [generoAT, setGeneroAT] = useState("");
-  const [loading, setLoading] = useState(false); // ⬅️ NUEVO
+  const [loading, setLoading] = useState(false); 
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +40,7 @@ function SolicitarAT() {
     if (!tipoPrestacion) return alert("Seleccioná un tipo de prestación");
 
     try {
-      setLoading(true); // ⬅️ ACTIVA LOADING
+      setLoading(true);
 
       await addDoc(collection(db, "solicitudes_at"), {
         nombre: e.target.nombre.value,
@@ -58,7 +59,7 @@ function SolicitarAT() {
         createdAt: serverTimestamp(),
       });
 
-      alert("Solicitud enviada 🙌\nTe contactaremos por WhatsApp");
+      navigate("/gracias-solicitud");
 
       e.target.reset();
       setTipoAcompanamiento("");
@@ -112,6 +113,15 @@ function SolicitarAT() {
               helperText="Solo número, sin +54 ni 9"
               sx={{ mb: 2 }}
             />
+          <TextField
+            label="Email de contacto"
+            name="email"
+            type="email"
+            fullWidth
+            required
+            helperText="Usaremos este email para contactarte"
+            sx={{ mb: 2 }}
+          />
 
             <FormControl sx={{ mb: 3 }}>
               <InputLabel shrink>Zona donde buscás AT</InputLabel>

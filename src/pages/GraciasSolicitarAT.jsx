@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { colors } from "../styles";
 
-function GraciasAT() {
+function GraciasSolicitarAT() {
   const navigate = useNavigate();
 
   return (
@@ -38,27 +38,33 @@ function GraciasAT() {
           />
 
           <Typography variant="h5" fontWeight={600} mt={1}>
-            ¡Registro enviado correctamente!
+            ¡Solicitud enviada correctamente!
           </Typography>
 
           <Divider sx={{ my: 2 }} />
 
           <Typography variant="body1" sx={{ mb: 3 }}>
-            Cuando tengamos solicitudes acordes a tu perfil y zona,
-            te contactaremos por <strong>WhatsApp</strong>.
+            Recibimos tu solicitud de <strong>Acompañante Terapéutico</strong>.
+            En breve nos pondremos en contacto para ofrecerte
+            perfiles acordes a tu necesidad.
           </Typography>
 
           <Divider sx={{ mb: 3 }} />
 
-          {/* Acciones */}
           <Stack spacing={1.5}>
             <Button
-              startIcon={<FacebookIcon />}
-              variant="outlined"
-              href="https://www.facebook.com/AbordandoSaludMental"
-              target="_blank"
+              variant="contained"
+              onClick={() => navigate("/")}
+              sx={{
+                borderRadius: 999,
+                fontWeight: 600,
+                backgroundColor: colors.primary,
+                "&:hover": {
+                  backgroundColor: colors.textPrimary,
+                },
+              }}
             >
-              Seguinos en Facebook
+              Volver al inicio
             </Button>
 
             <Button
@@ -70,21 +76,13 @@ function GraciasAT() {
               Seguinos en Instagram
             </Button>
 
-            {/* Volver al inicio */}
             <Button
-              variant="contained"
-              onClick={() => navigate("/")}
-              sx={{
-                mt: 1,
-                borderRadius: 999,
-                fontWeight: 600,
-                backgroundColor: colors.primary,
-                "&:hover": {
-                  backgroundColor: colors.textPrimary,
-                },
-              }}
+              startIcon={<FacebookIcon />}
+              variant="outlined"
+              href="https://www.facebook.com/AbordandoSaludMental"
+              target="_blank"
             >
-              Volver al inicio
+              Seguinos en Facebook
             </Button>
           </Stack>
 
@@ -92,7 +90,7 @@ function GraciasAT() {
             variant="caption"
             sx={{ display: "block", mt: 3, color: "#777" }}
           >
-            Podés cerrar esta página cuando quieras.
+            Gracias por confiar en El Canal del AT.
           </Typography>
         </Paper>
       </Container>
@@ -100,4 +98,4 @@ function GraciasAT() {
   );
 }
 
-export default GraciasAT;
+export default GraciasSolicitarAT;

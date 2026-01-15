@@ -6,6 +6,7 @@ import GraciasAT from "./pages/GraciasAT";
 import SolicitarAT from "./pages/SolicitarAT";
 import Header from "./components/home/Header";
 import Footer from "./components/home/Footer";
+import GraciasSolicitarAT from "./pages/GraciasSolicitarAT";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/gracias-at" element={<GraciasAT />} />
         <Route path="/solicitar-at" element={<SolicitarAT />} />
+        <Route path="/gracias-solicitud" element={<GraciasSolicitarAT />} />
       </Routes>
       <Footer />
     </BrowserRouter>
