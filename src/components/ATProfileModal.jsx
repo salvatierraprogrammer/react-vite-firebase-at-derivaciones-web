@@ -8,6 +8,9 @@ import {
   Box,
   Divider,
   Chip,
+  Stack,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import WcIcon from "@mui/icons-material/Wc";
@@ -20,63 +23,59 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SchoolIcon from "@mui/icons-material/School";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 export default function ATProfileModal({ at, open, onClose }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   if (!at) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Perfil completo – {at.nombre}</DialogTitle>
-      
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullScreen={isMobile}
+      fullWidth
+      maxWidth="sm"
+    >
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        Perfil completo – {at.nombre}
+      </DialogTitle>
+
       <DialogContent dividers>
-        <Box display="flex" flexDirection="column" gap={1.5}>
-          {/* Datos básicos */}
-          <Box display="flex" alignItems="center" gap={1}>
-            <PersonIcon color="primary" /> <Typography>{at.nombre}</Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <WcIcon color="action" /> <Typography>{at.genero}</Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <WhatsAppIcon color="success" /> <Typography>{at.whatsapp}</Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <EmailIcon color="action" /> <Typography>{at.email || "No informado"}</Typography>
-          </Box>
+        <Stack spacing={2}>
+          {/* ================= DATOS BÁSICOS ================= */}
+          <Section title="Datos personales">
+            <Item icon={<PersonIcon />} text={at.nombre} />
+            <Item icon={<WcIcon />} text={at.genero} />
+            <Item icon={<WhatsAppIcon color="success" />} text={at.whatsapp} />
+            <Item
+              icon={<EmailIcon />}
+              text={at.email || "No informado"}
+            />
+            <Item
+              icon={
+                <VerifiedIcon
+                  color={at.certificadoAT ? "primary" : "disabled"}
+                />
+              }
+              text={`Certificado AT: ${at.certificadoAT ? "Sí" : "No"}`}
+            />
+            {at.certificadoResolucion && (
+              <Typography variant="body2" sx={{ ml: 4 }}>
+                Resolución: {at.certificadoResolucion}
+              </Typography>
+            )}
+          </Section>
 
-          <Box display="flex" alignItems="center" gap={1}>
-            <VerifiedIcon color={at.certificadoAT ? "primary" : "disabled"} />
-            <Typography>Certificado AT: {at.certificadoAT ? "Sí" : "No"}</Typography>
-          </Box>
-          {at.certificadoResolucion && (
-            <Typography sx={{ ml: 4 }}>
-              Resolución: {at.certificadoResolucion}
-            </Typography>
-          )}
-
-          <Box display="flex" alignItems="center" gap={1}>
-            <AssignmentIcon color="action" /> <Typography>Especializaciones: {at.especializaciones}</Typography>
-          </Box>
-
-          <Box display="flex" alignItems="center" gap={1}>
-            <WorkIcon color="action" /> <Typography>Monotributo: {at.monotributo || "-"}</Typography>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* Estado educativo */}
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            <SchoolIcon fontSize="small" sx={{ mr: 0.5 }} /> Educación
-          </Typography>
-          <Box sx={{ ml: 2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+          {/* ================= EDUCACIÓN ================= */}
+          <Section title="Educación" icon={<SchoolIcon />}>
             <Typography>
               Estado educativo: {at.estadoEducativo || "No informado"}
             </Typography>
-
             {at.estadoEducativo === "estudiante" && at.estudianteCarrera && (
               <Typography sx={{ ml: 2 }}>
-                Está estudiando: {at.estudianteCarrera}
+                Carrera: {at.estudianteCarrera}
               </Typography>
             )}
             {at.estadoEducativo === "graduado" && at.carreraFinalizada && (
@@ -84,73 +83,99 @@ export default function ATProfileModal({ at, open, onClose }) {
                 Carrera finalizada: {at.carreraFinalizada}
               </Typography>
             )}
-          </Box>
+          </Section>
 
-          <Divider sx={{ my: 2 }} />
+          {/* ================= ESPECIALIZACIONES ================= */}
+          <Section title="Especializaciones" icon={<AssignmentIcon />}>
+            <Typography>{at.especializaciones || "No informado"}</Typography>
+          </Section>
 
-          {/* Seguros */}
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            <FavoriteIcon fontSize="small" sx={{ mr: 0.5 }} /> Seguros
-          </Typography>
-          <Box display="flex" flexDirection="column" gap={0.5} sx={{ ml: 2 }}>
-            <Typography>Responsabilidad Civil: {at.seguros?.responsabilidadCivil ? "Sí" : "No"}</Typography>
-            <Typography>Accidentes Personales: {at.seguros?.accidentesPersonales ? "Sí" : "No"}</Typography>
-            <Typography>Puede gestionar: {at.seguros?.puedeGestionar ? "Sí" : "No"}</Typography>
-          </Box>
+          {/* ================= EXPERIENCIA ================= */}
+          <Section title="Experiencia laboral" icon={<WorkIcon />}>
+            <Typography>{at.experiencia || "No informado"}</Typography>
+          </Section>
 
-          <Divider sx={{ my: 2 }} />
-
-          {/* Zonas */}
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            <LocationOnIcon fontSize="small" sx={{ mr: 0.5 }} /> Zonas
-          </Typography>
-          <Box sx={{ ml: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
-            {at.zonas?.map((z) => (
-              <Chip key={z} label={z} color="primary" size="small" />
-            ))}
-            {at.zonas?.includes("Interior / Otras provincias") && at.zonaInterior && (
-              <Chip label={`Interior: ${at.zonaInterior}`} color="secondary" size="small" />
-            )}
-          </Box>
-
-          {/* Disponibilidad y tipos */}
-          <Box mt={1}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              <ScheduleIcon fontSize="small" sx={{ mr: 0.5 }} /> Disponibilidad
+          {/* ================= SEGUROS ================= */}
+          <Section title="Seguros" icon={<FavoriteIcon />}>
+            <Typography>
+              Responsabilidad civil:{" "}
+              {at.seguros?.responsabilidadCivil ? "Sí" : "No"}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", ml: 2 }}>
+            <Typography>
+              Accidentes personales:{" "}
+              {at.seguros?.accidentesPersonales ? "Sí" : "No"}
+            </Typography>
+            <Typography>
+              Puede gestionar: {at.seguros?.puedeGestionar ? "Sí" : "No"}
+            </Typography>
+          </Section>
+
+          {/* ================= ZONAS ================= */}
+          <Section title="Zonas" icon={<LocationOnIcon />}>
+            <Box display="flex" gap={1} flexWrap="wrap">
+              {at.zonas?.map((z) => (
+                <Chip key={z} label={z} size="small" color="primary" />
+              ))}
+              {at.zonas?.includes("Interior / Otras provincias") &&
+                at.zonaInterior && (
+                  <Chip
+                    label={`Interior: ${at.zonaInterior}`}
+                    size="small"
+                    color="secondary"
+                  />
+                )}
+            </Box>
+          </Section>
+
+          {/* ================= DISPONIBILIDAD ================= */}
+          <Section title="Disponibilidad" icon={<ScheduleIcon />}>
+            <Box display="flex" gap={1} flexWrap="wrap">
               {at.disponibilidad?.map((d) => (
-                <Chip key={d} label={d} color="success" size="small" />
+                <Chip key={d} label={d} size="small" color="success" />
               ))}
             </Box>
-          </Box>
+          </Section>
 
-          <Box mt={1}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              <AssignmentIcon fontSize="small" sx={{ mr: 0.5 }} /> Tipos de acompañamiento
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", ml: 2 }}>
+          {/* ================= TIPOS ================= */}
+          <Section title="Tipos de acompañamiento" icon={<AssignmentIcon />}>
+            <Box display="flex" gap={1} flexWrap="wrap">
               {at.tiposAcompanamiento?.map((t) => (
-                <Chip key={t} label={t} color="info" size="small" />
+                <Chip key={t} label={t} size="small" color="info" />
               ))}
             </Box>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* Experiencia */}
-          <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-            <WorkIcon fontSize="small" sx={{ mr: 0.5 }} /> Experiencia laboral
-          </Typography>
-          <Typography sx={{ ml: 2 }}>{at.experiencia}</Typography>
-        </Box>
+          </Section>
+        </Stack>
       </DialogContent>
 
-      <DialogActions>
-        <Button variant="contained" onClick={onClose} color="primary">
+      <DialogActions sx={{ p: 2 }}>
+        <Button fullWidth={isMobile} variant="contained" onClick={onClose}>
           Cerrar
         </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+/* ================= COMPONENTES AUX ================= */
+
+function Section({ title, icon, children }) {
+  return (
+    <Box>
+      <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+        {icon && <Box component="span" mr={0.5}>{icon}</Box>}
+        {title}
+      </Typography>
+      <Divider sx={{ mb: 1 }} />
+      <Box sx={{ ml: 1 }}>{children}</Box>
+    </Box>
+  );
+}
+
+function Item({ icon, text }) {
+  return (
+    <Box display="flex" alignItems="center" gap={1}>
+      {icon}
+      <Typography>{text}</Typography>
+    </Box>
   );
 }

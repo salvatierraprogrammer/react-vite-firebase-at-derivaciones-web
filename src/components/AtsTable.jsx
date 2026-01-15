@@ -12,6 +12,11 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Paper,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import ATRow from "./ATRow";
@@ -28,6 +33,9 @@ export default function AtsTable({ ats }) {
   const [zonaFiltro, setZonaFiltro] = useState("");
   const [busqueda, setBusqueda] = useState("");
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const handleVerPerfil = (at) => {
     setSelectedAT(at);
     setOpen(true);
@@ -42,22 +50,23 @@ export default function AtsTable({ ats }) {
     setVisibleCount((prev) => prev + 10);
   };
 
-  // 🔹 Filtrar duplicados por WhatsApp antes de calcular totales
+  /* ===== AT ÚNICOS ===== */
   const atsUnicos = ats.filter(
     (at, index, self) =>
       index === self.findIndex((t) => t.whatsapp === at.whatsapp)
   );
 
-  // 🔹 Conteo de géneros usando atsUnicos
+  /* ===== CONTADORES ===== */
   const totalAT = atsUnicos.length;
   const femenino = atsUnicos.filter((at) => at.genero === "Femenino").length;
   const masculino = atsUnicos.filter((at) => at.genero === "Masculino").length;
   const noBinario = atsUnicos.filter(
-    (at) => at.genero === "No binario" || at.genero === "Prefiere no decirlo"
+    (at) =>
+      at.genero === "No binario" || at.genero === "Prefiere no decirlo"
   ).length;
 
-  // 🔹 Filtrar por zona y búsqueda, y ordenar por createdAt descendente
-  const atsFiltrados = ats
+  /* ===== FILTROS ===== */
+  const atsFiltrados = atsUnicos
     .filter((at) => {
       const cumpleZona = zonaFiltro ? at.zonas?.includes(zonaFiltro) : true;
       const cumpleBusqueda = busqueda
@@ -65,10 +74,6 @@ export default function AtsTable({ ats }) {
         : true;
       return cumpleZona && cumpleBusqueda;
     })
-    .filter(
-      (at, index, self) =>
-        index === self.findIndex((t) => t.whatsapp === at.whatsapp)
-    )
     .sort((a, b) => {
       const fechaA = a.createdAt?.toDate
         ? a.createdAt.toDate()
@@ -84,24 +89,12 @@ export default function AtsTable({ ats }) {
   const zonasUnicas = [...new Set(ats.flatMap((at) => at.zonas || []))].sort();
 
   return (
-    <Box p={3}>
+    <Box p={{ xs: 1, md: 3 }}>
       {/* ===== RESUMEN ===== */}
-      <Box mb={2} display="flex" gap={2} flexWrap="wrap">
-        <Chip
-          icon={<GroupsIcon />}
-          label={`Total AT: ${totalAT}`}
-          color="primary"
-        />
-        <Chip
-          icon={<WcIcon />}
-          label={`Femenino: ${femenino}`}
-          color="success"
-        />
-        <Chip
-          icon={<PersonIcon />}
-          label={`Masculino: ${masculino}`}
-          color="info"
-        />
+      <Box mb={2} display="flex" gap={1.5} flexWrap="wrap">
+        <Chip icon={<GroupsIcon />} label={`Total AT: ${totalAT}`} />
+        <Chip icon={<WcIcon />} label={`Femenino: ${femenino}`} color="success" />
+        <Chip icon={<PersonIcon />} label={`Masculino: ${masculino}`} />
         {noBinario > 0 && (
           <Chip
             icon={<TransgenderIcon />}
@@ -136,32 +129,73 @@ export default function AtsTable({ ats }) {
         />
       </Box>
 
-      {/* ===== TABLA ===== */}
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Nombre</TableCell>
-            <TableCell>Zona</TableCell>
-            <TableCell>Tipos</TableCell>
-            <TableCell>Estado</TableCell>
-            <TableCell>Acciones</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
+      {/* ================= MOBILE ================= */}
+      {isMobile ? (
+        <Stack spacing={2}>
           {atsVisibles.map((at) => (
-            <ATRow key={at.id} at={at} onVerPerfil={handleVerPerfil} />
-          ))}
-          {atsVisibles.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} align="center">
-                No se encontraron AT
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            <Paper key={at.id} sx={{ p: 2, borderRadius: 2 }}>
+              <Stack spacing={1}>
+                <Typography fontWeight={600}>{at.nombre}</Typography>
 
-      {/* ===== BOTÓN MOSTRAR MÁS ===== */}
+                <Typography variant="body2">
+                  <strong>Zonas:</strong> {at.zonas?.join(", ")}
+                </Typography>
+
+                <Typography variant="body2">
+                  <strong>Tipos:</strong>{" "}
+                  {at.tiposAcompanamiento?.join(", ")}
+                </Typography>
+
+                <Chip
+                  label={at.estado || "Activo"}
+                  size="small"
+                  color="success"
+                  sx={{ alignSelf: "flex-start" }}
+                />
+
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => handleVerPerfil(at)}
+                >
+                  Ver perfil
+                </Button>
+              </Stack>
+            </Paper>
+          ))}
+
+          {atsVisibles.length === 0 && (
+            <Typography align="center">No se encontraron AT</Typography>
+          )}
+        </Stack>
+      ) : (
+        /* ================= DESKTOP ================= */
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Nombre</TableCell>
+              <TableCell>Zona</TableCell>
+              <TableCell>Tipos</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell>Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {atsVisibles.map((at) => (
+              <ATRow key={at.id} at={at} onVerPerfil={handleVerPerfil} />
+            ))}
+            {atsVisibles.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  No se encontraron AT
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* ===== MOSTRAR MÁS ===== */}
       {visibleCount < atsFiltrados.length && (
         <Box mt={2} textAlign="center">
           <Button variant="outlined" onClick={handleMostrarMas}>
@@ -170,7 +204,7 @@ export default function AtsTable({ ats }) {
         </Box>
       )}
 
-      {/* ===== MODAL DE PERFIL ===== */}
+      {/* ===== MODAL ===== */}
       <ATProfileModal at={selectedAT} open={open} onClose={handleClose} />
     </Box>
   );
