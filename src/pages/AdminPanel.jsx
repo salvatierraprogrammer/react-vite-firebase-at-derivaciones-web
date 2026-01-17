@@ -12,13 +12,14 @@ import {
   Button,
   Box,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 
 import SolicitudesTable from "../components/SolicitudesTable";
 import AtsTable from "../components/AtsTable";
 import MatchesDialog from "../components/MatchesDialog";
+import { generarTextoWhatsAppCliente } from "../utils/generarTextoWhatsAppCliente";
 
 /* ---------------- SINÓNIMOS ---------------- */
 const sinonimos = {
@@ -28,10 +29,15 @@ const sinonimos = {
   ansiedad: ["trastorno de ansiedad"],
 };
 
-const normalizarTexto = (texto = "") => texto.toLowerCase();
+/* ---------------- HELPERS ---------------- */
+const normalizarTexto = (texto = "") =>
+  String(texto).toLowerCase().trim();
 
 const textoCoincide = (texto = "", busqueda = "") => {
-  const t = normalizarTexto(texto);
+  if (!texto || !busqueda) return false;
+
+  const textoFinal = Array.isArray(texto) ? texto.join(" ") : texto;
+  const t = normalizarTexto(textoFinal);
   const b = normalizarTexto(busqueda);
 
   if (t.includes(b)) return true;
@@ -42,15 +48,34 @@ const textoCoincide = (texto = "", busqueda = "") => {
   return sin.some((s) => t.includes(s));
 };
 
+/* 👤 GÉNERO */
+const generoCompatible = (atGenero, generoAT) => {
+  if (!generoAT || generoAT === "indistinto") return true;
+  return atGenero === generoAT;
+};
+
+const scoreGenero = (atGenero, generoAT) => {
+  if (!generoAT || generoAT === "indistinto") {
+    return { puntos: 5, razon: "Género indistinto" };
+  }
+  if (atGenero === generoAT) {
+    return { puntos: 15, razon: "Género compatible" };
+  }
+  return { puntos: 0, razon: null };
+};
+
+/* 👶 NIÑES */
+const trabajaConNinies = (tipos = []) =>
+  tipos.some((t) => normalizarTexto(t).includes("niñ"));
+
 /* ================= ADMIN PANEL ================= */
 export default function AdminPanel() {
-  /* 🔐 BLOQUEO */
   const CODIGO_CORRECTO = import.meta.env.VITE_CODIGO_ACCESO;
+
   const [bloqueado, setBloqueado] = useState(true);
   const [codigo, setCodigo] = useState("");
   const [error, setError] = useState(false);
 
-  /* UI */
   const [tab, setTab] = useState(0);
   const [openMatches, setOpenMatches] = useState(false);
 
@@ -58,7 +83,7 @@ export default function AdminPanel() {
   const [ats, setAts] = useState([]);
   const [matches, setMatches] = useState([]);
   const [solicitudActual, setSolicitudActual] = useState(null);
-
+  const [matchesPorSolicitud, setMatchesPorSolicitud] = useState({});
   /* ---------------- FIRESTORE ---------------- */
   useEffect(() => {
     if (bloqueado) return;
@@ -97,10 +122,22 @@ export default function AdminPanel() {
 
     if (
       Array.isArray(at.tiposAcompanamiento) &&
-      at.tiposAcompanamiento.includes(solicitud.tipoAcompanamiento)
+      at.tiposAcompanamiento.some(
+        (t) =>
+          normalizarTexto(t) ===
+          normalizarTexto(solicitud.tipoAcompanamiento)
+      )
     ) {
       score += 25;
       razones.push("Tipo de acompañamiento compatible");
+    }
+
+    if (
+      solicitud.grupoEtario === "niñes" &&
+      trabajaConNinies(at.tiposAcompanamiento)
+    ) {
+      score += 10;
+      razones.push("Experiencia con niñes");
     }
 
     if (textoCoincide(at.especializaciones, solicitud.diagnostico)) {
@@ -121,77 +158,96 @@ export default function AdminPanel() {
       razones.push("Compatible con prestación");
     }
 
+    const genero = scoreGenero(at.genero, solicitud.generoAT);
+    score += genero.puntos;
+    if (genero.razon) razones.push(genero.razon);
+
     return { score, razones };
   };
 
   /* ---------------- MATCHES ---------------- */
-  const buscarMatches = (solicitud) => {
-    const resultado = ats
-      .filter((at) => at.estado === "activo")
-      .map((at) => {
-        const { score, razones } = calcularScore(at, solicitud);
-        return { ...at, score, razones };
-      })
-      .filter((at) => at.score >= 40)
-      .sort((a, b) => b.score - a.score);
+const buscarMatches = (solicitud) => {
+  const resultado = ats
+    .filter((at) => at.estado === "activo")
+    .filter((at) => generoCompatible(at.genero, solicitud.generoAT))
+    .map((at) => {
+      const { score, razones } = calcularScore(at, solicitud);
+      return { ...at, score, razones };
+    })
+    .filter((at) => at.score >= 40)
+    .sort((a, b) => b.score - a.score);
 
-    setSolicitudActual(solicitud);
-    setMatches(resultado);
-    setOpenMatches(true);
-  };
+  setMatchesPorSolicitud((prev) => ({
+    ...prev,
+    [solicitud.id]: resultado,
+  }));
+
+  setSolicitudActual(solicitud);
+  setMatches(resultado);
+  setOpenMatches(true);
+};
+
+  /* ---------------- WHATSAPP CLIENTE ---------------- */
+  const whatsappClienteUrl = useMemo(() => {
+    if (!solicitudActual?.whatsapp || matches.length === 0) return null;
+
+    const texto = generarTextoWhatsAppCliente({
+      solicitud: solicitudActual,
+      matches,
+    });
+
+    return `https://wa.me/${solicitudActual.whatsapp}?text=${encodeURIComponent(
+      texto
+    )}`;
+  }, [solicitudActual, matches]);
 
   /* ================= RENDER ================= */
   return (
     <>
-      {/* 🔐 MODAL BLOQUEANTE */}
       <Dialog open={bloqueado} fullWidth maxWidth="xs">
         <DialogTitle>🔒 Acceso restringido</DialogTitle>
-
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Ingresá el código de 6 dígitos para continuar
+          <Typography sx={{ mb: 2 }}>
+            Ingresá el código para continuar
           </Typography>
-
           <TextField
-            autoFocus
             fullWidth
+            autoFocus
             value={codigo}
             error={error}
             helperText={error ? "Código incorrecto" : ""}
             onChange={(e) => setCodigo(e.target.value)}
             inputProps={{
               maxLength: 6,
-              inputMode: "numeric",
-              style: { textAlign: "center", fontSize: 22, letterSpacing: 6 },
+              style: { textAlign: "center", fontSize: 22 },
             }}
           />
         </DialogContent>
-
         <DialogActions>
-          <Button variant="contained" fullWidth onClick={validarCodigo}>
+          <Button fullWidth variant="contained" onClick={validarCodigo}>
             Ingresar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* 🧠 PANEL */}
       {!bloqueado && (
         <Container maxWidth="lg" sx={{ mt: 6 }}>
           <Typography variant="h4" gutterBottom>
             Panel de Administración
           </Typography>
 
-          <Paper elevation={3}>
+          <Paper>
             <Tabs value={tab} onChange={(e, v) => setTab(v)}>
               <Tab label="Solicitudes" />
-              <Tab label="Acompañantes Terapéuticos" />
+              <Tab label="ATs" />
             </Tabs>
 
             {tab === 0 && (
-              <SolicitudesTable
-                solicitudes={solicitudes}
-                onVerMatches={buscarMatches}
-              />
+            <SolicitudesTable
+              solicitudes={solicitudes}
+              onVerMatches={buscarMatches}
+              matchesPorSolicitud={matchesPorSolicitud}
+            />
             )}
 
             {tab === 1 && <AtsTable ats={ats} />}
@@ -203,6 +259,8 @@ export default function AdminPanel() {
             matches={matches}
             solicitud={solicitudActual}
           />
+
+
         </Container>
       )}
     </>

@@ -16,10 +16,10 @@ import {
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { colors } from "../styles";
 import { generarTextoWhatsApp } from "../utils/whatsappTemplates";
-import generarPDFMatch  from "../utils/generarPDF";
+import generarPDFMatch from "../utils/generarPDF";
 
 /* 🔹 Nivel de match visual */
-const getNivelMatch = (score) => {
+const getNivelMatch = (score = 0) => {
   if (score >= 80) return { label: "Ideal", color: "success" };
   if (score >= 55) return { label: "Buen match", color: "warning" };
   return { label: "Match parcial", color: "default" };
@@ -31,7 +31,6 @@ export default function MatchesDialog({
   matches = [],
   solicitud,
 }) {
-  
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       {/* HEADER */}
@@ -44,7 +43,7 @@ export default function MatchesDialog({
       >
         Acompañantes Terapéuticos compatibles
         {solicitud?.nombre && (
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+          <Typography variant="body2" sx={{ opacity: 0.9,   color: "#fff", fontWeight: 400, mt: 0.5 }}>
             Caso: {solicitud.nombre}
           </Typography>
         )}
@@ -57,16 +56,22 @@ export default function MatchesDialog({
           </Typography>
         ) : (
           matches.map((at) => {
-            const nivel = getNivelMatch(at.score);
+            const nivel = getNivelMatch(at.score ?? 0);
 
-        /* 📲 WhatsApp dinámico (ROBUSTO + EMOJIS OK) */
-        const texto = generarTextoWhatsApp({ at, solicitud });
+            /* 📲 WhatsApp seguro */
+            const texto = generarTextoWhatsApp({ at, solicitud });
+            const telefonoLimpio =
+              typeof at.whatsapp === "string"
+                ? at.whatsapp.replace(/\D/g, "")
+                : "";
 
-        const telefonoLimpio = at.whatsapp?.replace(/\D/g, "");
+            const whatsappUrl =
+              telefonoLimpio.length >= 8
+                ? `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodeURIComponent(
+                    texto
+                  )}`
+                : null;
 
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodeURIComponent(
-          texto
-        )}`;
             return (
               <Paper
                 key={at.id}
@@ -81,11 +86,11 @@ export default function MatchesDialog({
                 {/* HEADER AT */}
                 <Box display="flex" justifyContent="space-between" mb={1}>
                   <Typography variant="subtitle1" fontWeight={600}>
-                    {at.nombre}
+                    {at.nombre || "AT sin nombre"}
                   </Typography>
 
                   <Chip
-                    label={`${nivel.label} · ${at.score}%`}
+                    label={`${nivel.label} · ${at.score ?? 0}%`}
                     color={nivel.color}
                     size="small"
                   />
@@ -94,7 +99,9 @@ export default function MatchesDialog({
                 {/* INFO GENERAL */}
                 <Typography variant="body2" color="text.secondary">
                   📍 Zonas:{" "}
-                  {Array.isArray(at.zonas) ? at.zonas.join(", ") : "—"}
+                  {Array.isArray(at.zonas) && at.zonas.length > 0
+                    ? at.zonas.join(", ")
+                    : "—"}
                 </Typography>
 
                 <Divider sx={{ my: 2 }} />
@@ -105,37 +112,20 @@ export default function MatchesDialog({
                 </Typography>
 
                 <List dense sx={{ pl: 1 }}>
-                  {at.zonas?.includes(solicitud?.zona) && (
+                  {Array.isArray(at.razones) && at.razones.length > 0 ? (
+                    at.razones.map((razon, i) => (
+                      <ListItem key={i} disablePadding>
+                        <ListItemText primary={`• ${razon}`} />
+                      </ListItem>
+                    ))
+                  ) : (
                     <ListItem disablePadding>
-                      <ListItemText primary="• Zona compatible con el caso" />
+                      <ListItemText primary="• Coincidencia general con el caso" />
                     </ListItem>
                   )}
-
-                  {at.tiposAcompanamiento?.includes(
-                    solicitud?.tipoAcompanamiento
-                  ) && (
-                    <ListItem disablePadding>
-                      <ListItemText primary="• Tipo de acompañamiento compatible" />
-                    </ListItem>
-                  )}
-
-                  {(at.especializaciones || at.experiencia) &&
-                    solicitud?.diagnostico && (
-                      <ListItem disablePadding>
-                        <ListItemText primary="• Experiencia relacionada al diagnóstico" />
-                      </ListItem>
-                    )}
-
-                  {solicitud?.tipoPrestacion !==
-                    "AT particular (pago privado)" &&
-                    at.monotributo !== "no" && (
-                      <ListItem disablePadding>
-                        <ListItemText primary="• Puede trabajar con obra social / institución" />
-                      </ListItem>
-                    )}
                 </List>
 
-                {/* TIPOS */}
+                {/* TIPOS DE ACOMPAÑAMIENTO */}
                 {Array.isArray(at.tiposAcompanamiento) &&
                   at.tiposAcompanamiento.length > 0 && (
                     <>
@@ -158,20 +148,22 @@ export default function MatchesDialog({
                   )}
 
                 {/* CTA */}
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<WhatsAppIcon />}
-                  sx={{
-                    mt: 3,
-                    backgroundColor: "#25D366",
-                    "&:hover": { backgroundColor: "#1ebe5b" },
-                  }}
-                  href={whatsappUrl}
-                  target="_blank"
-                >
-                  Contactar por WhatsApp
-                </Button>
+                {whatsappUrl && (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<WhatsAppIcon />}
+                    sx={{
+                      mt: 3,
+                      backgroundColor: "#25D366",
+                      "&:hover": { backgroundColor: "#1ebe5b" },
+                    }}
+                    href={whatsappUrl}
+                    target="_blank"
+                  >
+                    Contactar por WhatsApp
+                  </Button>
+                )}
 
                 <Button
                   fullWidth

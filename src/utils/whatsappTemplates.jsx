@@ -24,7 +24,7 @@ const textoIncluye = (texto = "", busqueda = "") => {
   );
 };
 
-/* 📲 TEXTO FINAL PARA WHATSAPP (con emojis reales) */
+/* 📲 TEXTO FINAL PARA WHATSAPP */
 export const generarTextoWhatsApp = ({ at, solicitud }) => {
   const motivos = [];
 
@@ -46,16 +46,20 @@ export const generarTextoWhatsApp = ({ at, solicitud }) => {
   return [
     `Hola ${at.nombre}, ¿cómo estás? 👋`,
     ``,
-    `Te contactamos por una posible propuesta de acompañamiento terapéutico.`,
+    `Te contactamos desde *El Canal del AT* por una posible propuesta de acompañamiento terapéutico.`,
     ``,
-    `📍 Zona: ${solicitud.zona}`,
-    `👤 Edad: ${solicitud.edad || "—"}`,
-    `🧠 Diagnóstico: ${solicitud.diagnostico}`,
-    `🕒 Horarios: ${solicitud.horariosDetalle || "A coordinar"}`,
+    `📍 *Zona:* ${solicitud.zona}`,
+    `👤 *Edad:* ${solicitud.edad || "—"}`,
+    `🧠 *Diagnóstico:* ${solicitud.diagnostico}`,
+    `🕒 *Horarios:* ${solicitud.horariosDetalle || "A coordinar"}`,
     ``,
-    `🔍 ¿Por qué pensamos en vos?`,
+    `🔍 *¿Por qué pensamos en vos?*`,
     ...motivos.map((m) => `• ${m}`),
     ``,
-    `Si te interesa, avisanos y te contamos más detalles 🙂`,
+    `👉 *Si te interesa avanzar*, respondé por este medio y *enviaremos tu contacto al caso*.`,
+    `La persona solicitante será quien se comunique con vos para brindarte más detalles y coordinar.`,
+    ``,
+    `Gracias por tu tiempo 💚`,
+    `Equipo *El Canal del AT*`,
   ].join("\n");
 };

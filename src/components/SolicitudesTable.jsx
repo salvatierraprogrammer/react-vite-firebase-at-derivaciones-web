@@ -6,25 +6,83 @@ import {
   TableCell,
   TableBody,
   Button,
-  Chip,
   Box,
   Typography,
   Paper,
   Stack,
   useMediaQuery,
   useTheme,
+  CircularProgress,
+  Select,
+  MenuItem,
 } from "@mui/material";
-import SolicitudDetalleModal from "./SolicitudDetalleModal";
 
-export default function SolicitudesTable({ solicitudes, onVerMatches }) {
+import SolicitudDetalleModal from "./SolicitudDetalleModal";
+import { generarTextoWhatsAppCliente } from "../utils/generarTextoWhatsAppCliente";
+import { generarTextoWhatsAppLiberarContacto } from "../utils/generarTextoWhatsAppLiberarContacto";
+
+/* ---------------- ESTADOS ---------------- */
+const estados = ["nuevo", "en_proceso", "cerrado", "pagado"];
+
+export default function SolicitudesTable({
+  solicitudes = [],
+  onVerMatches,
+  matchesPorSolicitud = {},
+  loading = false,
+}) {
   const [openDetalle, setOpenDetalle] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
+  const [estadosLocal, setEstadosLocal] = useState({});
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleVerDetalle = (solicitud) => {
-    setSolicitudSeleccionada(solicitud);
+  /* ================= WHATSAPP MATCHES (ANÓNIMO) ================= */
+  const generarLinkWhatsappMatches = (solicitud) => {
+    const matches = Array.isArray(matchesPorSolicitud[solicitud.id])
+      ? matchesPorSolicitud[solicitud.id]
+      : [];
+
+    if (!solicitud?.whatsapp || matches.length === 0) return null;
+
+    const telefono = solicitud.whatsapp.replace(/\D/g, "");
+    if (telefono.length < 8) return null;
+
+    const texto = generarTextoWhatsAppCliente({ solicitud, matches });
+
+    return `https://api.whatsapp.com/send?phone=${telefono}&text=${encodeURIComponent(texto)}`;
+  };
+
+  /* ================= WHATSAPP LIBERAR CONTACTO ================= */
+  const generarLinkWhatsappLiberar = (solicitud) => {
+    const matches = Array.isArray(matchesPorSolicitud[solicitud.id])
+      ? matchesPorSolicitud[solicitud.id]
+      : [];
+
+    if (!solicitud?.whatsapp || matches.length === 0) return null;
+
+    const telefono = solicitud.whatsapp.replace(/\D/g, "");
+    if (telefono.length < 8) return null;
+
+    const texto = generarTextoWhatsAppLiberarContacto({
+      solicitud,
+      matches,
+    });
+
+    return `https://api.whatsapp.com/send?phone=${telefono}&text=${encodeURIComponent(texto)}`;
+  };
+
+  /* ================= ESTADO ================= */
+  const handleChangeEstado = (id, nuevoEstado) => {
+    setEstadosLocal((prev) => ({
+      ...prev,
+      [id]: nuevoEstado,
+    }));
+  };
+
+  /* ================= DETALLE ================= */
+  const handleVerDetalle = (s) => {
+    setSolicitudSeleccionada(s);
     setOpenDetalle(true);
   };
 
@@ -33,70 +91,100 @@ export default function SolicitudesTable({ solicitudes, onVerMatches }) {
     setSolicitudSeleccionada(null);
   };
 
+  /* ================= LOADING ================= */
+  if (loading) {
+    return (
+      <Box p={3} textAlign="center">
+        <CircularProgress />
+        <Typography mt={2}>Cargando solicitudes…</Typography>
+      </Box>
+    );
+  }
+
+  /* ================= SIN DATOS ================= */
+  if (!solicitudes.length) {
+    return (
+      <Box p={3} textAlign="center">
+        <Typography>No hay solicitudes</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box p={{ xs: 1, md: 3 }}>
-      {/* ================= MOBILE ================= */}
       {isMobile ? (
+        /* ================= MOBILE ================= */
         <Stack spacing={2}>
-          {solicitudes.map((s) => (
-            <Paper key={s.id} sx={{ p: 2, borderRadius: 2 }}>
-              <Stack spacing={1}>
-                <Typography fontWeight={600}>{s.nombre}</Typography>
+          {solicitudes.map((s) => {
+            const estadoActual = estadosLocal[s.id] || s.estado;
+            const whatsappMatches = generarLinkWhatsappMatches(s);
+            const whatsappLiberar = generarLinkWhatsappLiberar(s);
 
-                <Typography variant="body2">
-                  <strong>Zona:</strong> {s.zona}
-                </Typography>
+            return (
+              <Paper key={s.id} sx={{ p: 2, borderRadius: 2 }}>
+                <Stack spacing={1}>
+                  <Typography fontWeight={600}>{s.nombre}</Typography>
 
-                {s.zona === "Interior / Otras provincias" && s.zonaInterior && (
-                  <Typography variant="caption" color="text.secondary">
-                    {s.zonaInterior}
+                  <Typography variant="body2">
+                    <strong>Zona:</strong> {s.zona}
                   </Typography>
-                )}
 
-                <Typography variant="body2">
-                  <strong>Acompañamiento:</strong> {s.tipoAcompanamiento}
-                </Typography>
+                  <Typography variant="body2">
+                    <strong>Acompañamiento:</strong> {s.tipoAcompanamiento}
+                  </Typography>
 
-                <Typography variant="body2">
-                  <strong>Prestación:</strong> {s.tipoPrestacion}
-                </Typography>
-
-                <Chip
-                  label={s.estado}
-                  color={s.estado === "nuevo" ? "warning" : "success"}
-                  size="small"
-                  sx={{ alignSelf: "flex-start" }}
-                />
-
-                <Stack direction="column" spacing={1} mt={1}>
-                  <Button
+                  <Select
                     size="small"
-                    variant="outlined"
-                    onClick={() => handleVerDetalle(s)}
+                    value={estadoActual}
+                    onChange={(e) =>
+                      handleChangeEstado(s.id, e.target.value)
+                    }
                   >
-                    Ver detalle
-                  </Button>
+                    {estados.map((e) => (
+                      <MenuItem key={e} value={e}>
+                        {e}
+                      </MenuItem>
+                    ))}
+                  </Select>
 
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onVerMatches(s)}
-                  >
-                    Ver matches
-                  </Button>
+                  <Stack spacing={1} mt={1}>
+                    <Button size="small" onClick={() => handleVerDetalle(s)}>
+                      Ver detalle
+                    </Button>
 
-                  <Button
-                    size="small"
-                    variant="contained"
-                    href={`https://wa.me/${s.whatsapp}`}
-                    target="_blank"
-                  >
-                    WhatsApp
-                  </Button>
+                    <Button size="small" onClick={() => onVerMatches(s)}>
+                      Ver matches
+                    </Button>
+
+                    {whatsappMatches && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        href={whatsappMatches}
+                        target="_blank"
+                      >
+                        Enviar matches
+                      </Button>
+                    )}
+
+                    {whatsappLiberar &&
+                      ["cerrado", "pagado"].includes(estadoActual) && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          href={whatsappLiberar}
+                          target="_blank"
+                        >
+                          Liberar contacto
+                        </Button>
+                      )}
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Paper>
-          ))}
+              </Paper>
+            );
+          })}
         </Stack>
       ) : (
         /* ================= DESKTOP ================= */
@@ -106,72 +194,85 @@ export default function SolicitudesTable({ solicitudes, onVerMatches }) {
               <TableCell>Nombre</TableCell>
               <TableCell>Zona</TableCell>
               <TableCell>Acompañamiento</TableCell>
-              <TableCell>Prestación</TableCell>
               <TableCell>Estado</TableCell>
               <TableCell>Acciones</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
-            {solicitudes.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell>{s.nombre}</TableCell>
+            {solicitudes.map((s) => {
+              const estadoActual = estadosLocal[s.id] || s.estado;
+              const whatsappMatches = generarLinkWhatsappMatches(s);
+              const whatsappLiberar = generarLinkWhatsappLiberar(s);
 
-                <TableCell>
-                  <Typography variant="body2">{s.zona}</Typography>
-                  {s.zona === "Interior / Otras provincias" && s.zonaInterior && (
-                    <Typography variant="caption" color="text.secondary">
-                      {s.zonaInterior}
-                    </Typography>
-                  )}
-                </TableCell>
+              return (
+                <TableRow key={s.id}>
+                  <TableCell>{s.nombre}</TableCell>
+                  <TableCell>{s.zona}</TableCell>
+                  <TableCell>{s.tipoAcompanamiento}</TableCell>
 
-                <TableCell>{s.tipoAcompanamiento}</TableCell>
-                <TableCell>{s.tipoPrestacion}</TableCell>
+                  <TableCell>
+                    <Select
+                      size="small"
+                      value={estadoActual}
+                      onChange={(e) =>
+                        handleChangeEstado(s.id, e.target.value)
+                      }
+                    >
+                      {estados.map((e) => (
+                        <MenuItem key={e} value={e}>
+                          {e}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </TableCell>
 
-                <TableCell>
-                  <Chip
-                    label={s.estado}
-                    color={s.estado === "nuevo" ? "warning" : "success"}
-                    size="small"
-                  />
-                </TableCell>
+                  <TableCell>
+                    <Button size="small" onClick={() => handleVerDetalle(s)}>
+                      Detalle
+                    </Button>
 
-                <TableCell>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => handleVerDetalle(s)}
-                    sx={{ mr: 1, mb: 0.5 }}
-                  >
-                    Ver detalle
-                  </Button>
+                    <Button
+                      size="small"
+                      onClick={() => onVerMatches(s)}
+                      sx={{ mx: 1 }}
+                    >
+                      Matches
+                    </Button>
 
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onVerMatches(s)}
-                    sx={{ mr: 1, mb: 0.5 }}
-                  >
-                    Ver matches
-                  </Button>
+                    {whatsappMatches && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        href={whatsappMatches}
+                        target="_blank"
+                        sx={{ mr: 1 }}
+                      >
+                        Enviar
+                      </Button>
+                    )}
 
-                  <Button
-                    size="small"
-                    variant="contained"
-                    href={`https://wa.me/${s.whatsapp}`}
-                    target="_blank"
-                  >
-                    WhatsApp
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                    {whatsappLiberar &&
+                      ["cerrado", "pagado"].includes(estadoActual) && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          href={whatsappLiberar}
+                          target="_blank"
+                        >
+                          Liberar
+                        </Button>
+                      )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
 
-      {/* MODAL */}
       <SolicitudDetalleModal
         open={openDetalle}
         onClose={handleCloseDetalle}
