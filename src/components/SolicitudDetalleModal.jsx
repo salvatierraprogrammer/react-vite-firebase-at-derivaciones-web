@@ -10,7 +10,9 @@ import {
   Button,
   Divider,
   Chip,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
@@ -29,6 +31,9 @@ export default function SolicitudDetalleModal({
   onLiberarAT,
 }) {
   if (!solicitud) return null;
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   /* ---------- GENERAR FLYER ---------- */
   const generarFlyer = async () => {
@@ -50,15 +55,28 @@ export default function SolicitudDetalleModal({
   return (
     <>
       {/* ================= MODAL ================= */}
-      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        maxWidth="sm"
+        fullScreen={isMobile}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            px: { xs: 2, sm: 3 },
+          }}
+        >
           <Typography variant="h6">Detalle de la solicitud</Typography>
           <IconButton onClick={onClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ px: { xs: 2, sm: 3 } }}>
           <Box mb={2}>
             <Chip
               label={solicitud.estado}
@@ -125,16 +143,29 @@ export default function SolicitudDetalleModal({
           </Section>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="contained" color="secondary" onClick={generarFlyer}>
+        <DialogActions
+          sx={{
+            px: { xs: 2, sm: 3 },
+            pb: 2,
+            flexWrap: "wrap",
+            gap: 1,
+          }}
+        >
+          <Button
+            fullWidth={isMobile}
+            variant="contained"
+            color="secondary"
+            onClick={generarFlyer}
+          >
             Generar flyer
           </Button>
 
           <Button
+            fullWidth={isMobile}
             startIcon={<WhatsAppIcon />}
             variant="contained"
             color="success"
-            href={`https://wa.me/${solicitud.whatsapp}`}
+            href={`https://wa.me/549${solicitud.whatsapp}`}
             target="_blank"
           >
             WhatsApp
@@ -142,6 +173,7 @@ export default function SolicitudDetalleModal({
 
           {solicitud.estado !== "cerrado" && onLiberarAT && (
             <Button
+              fullWidth={isMobile}
               variant="contained"
               color="warning"
               onClick={() => onLiberarAT(solicitud)}
@@ -150,7 +182,11 @@ export default function SolicitudDetalleModal({
             </Button>
           )}
 
-          <Button onClick={onClose} variant="outlined">
+          <Button
+            fullWidth={isMobile}
+            onClick={onClose}
+            variant="outlined"
+          >
             Cerrar
           </Button>
         </DialogActions>
@@ -170,47 +206,56 @@ function FlyerSolicitud({ solicitud }) {
     <Box
       id="flyer-solicitud"
       sx={{
-        width: 700,
+        width: "100%",
+        maxWidth: 700,
         minHeight: 900,
+        mx: "auto",
         backgroundImage: "url('/flyer.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
-        p: 4,
+        p: { xs: 2, sm: 4 },
         color: "#4b2c6f",
         fontFamily: "Poppins, sans-serif",
       }}
     >
-      <Typography variant="h5" align="center" fontWeight={700} mb={2}>
+      <Typography
+        align="center"
+        fontWeight={700}
+        mb={2}
+        sx={{ fontSize: { xs: "1.1rem", sm: "1.5rem" } }}
+      >
         📣 BÚSQUEDA DE ACOMPAÑANTE TERAPÉUTICO
       </Typography>
 
       <Divider sx={{ mb: 2 }} />
 
-      <Typography><b>Zona:</b> {solicitud.zona}</Typography>
-      <Typography><b>Edad:</b> {solicitud.edad}</Typography>
-      <Typography><b>Género:</b> {solicitud.generoAcompanado}</Typography>
+      <Info label="Zona" value={solicitud.zona} />
+      <Info label="Edad" value={solicitud.edad} />
+      <Info label="Género" value={solicitud.generoAcompanado} />
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography><b>Diagnóstico:</b> {solicitud.diagnostico}</Typography>
+      <Info label="Diagnóstico" value={solicitud.diagnostico} />
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography><b>Tipo:</b> {solicitud.tipoAcompanamiento}</Typography>
-      <Typography><b>Prestación:</b> {solicitud.tipoPrestacion}</Typography>
+      <Info label="Tipo" value={solicitud.tipoAcompanamiento} />
+      <Info label="Prestación" value={solicitud.tipoPrestacion} />
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography><b>Horarios:</b></Typography>
-      <Typography>{solicitud.horariosDetalle}</Typography>
+      <Typography fontWeight={600}>Horarios:</Typography>
+      <Typography sx={{ fontSize: "0.9rem" }}>
+        {solicitud.horariosDetalle || "—"}
+      </Typography>
 
       <Divider sx={{ my: 1 }} />
 
-      <Typography><b>Preferencia AT:</b> {solicitud.generoAT}</Typography>
+      <Info label="Preferencia AT" value={solicitud.generoAT} />
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography align="center" fontWeight={600}>
+      <Typography align="center" fontWeight={700}>
         📲 Contacto: {solicitud.whatsapp}
       </Typography>
 
@@ -238,7 +283,7 @@ function Section({ icon: Icon, title, children }) {
 
 function Info({ label, value }) {
   return (
-    <Typography variant="body2">
+    <Typography sx={{ fontSize: "0.9rem" }}>
       <strong>{label}:</strong> {value || "—"}
     </Typography>
   );

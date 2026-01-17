@@ -35,63 +35,41 @@ export default function SolicitudesTable({
   const [estadosLocal, setEstadosLocal] = useState({});
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  /* ================= WHATSAPP MATCHES (ANÓNIMO) ================= */
+  /* ================= WHATSAPP MATCHES ================= */
   const generarLinkWhatsappMatches = (solicitud) => {
-    const matches = Array.isArray(matchesPorSolicitud[solicitud.id])
-      ? matchesPorSolicitud[solicitud.id]
-      : [];
-
+    const matches = matchesPorSolicitud[solicitud.id] || [];
     if (!solicitud?.whatsapp || matches.length === 0) return null;
 
     const telefono = solicitud.whatsapp.replace(/\D/g, "");
     if (telefono.length < 8) return null;
 
     const texto = generarTextoWhatsAppCliente({ solicitud, matches });
-
     return `https://api.whatsapp.com/send?phone=${telefono}&text=${encodeURIComponent(texto)}`;
   };
 
-  /* ================= WHATSAPP LIBERAR CONTACTO ================= */
+  /* ================= WHATSAPP LIBERAR ================= */
   const generarLinkWhatsappLiberar = (solicitud) => {
-    const matches = Array.isArray(matchesPorSolicitud[solicitud.id])
-      ? matchesPorSolicitud[solicitud.id]
-      : [];
-
+    const matches = matchesPorSolicitud[solicitud.id] || [];
     if (!solicitud?.whatsapp || matches.length === 0) return null;
 
     const telefono = solicitud.whatsapp.replace(/\D/g, "");
     if (telefono.length < 8) return null;
 
-    const texto = generarTextoWhatsAppLiberarContacto({
-      solicitud,
-      matches,
-    });
-
+    const texto = generarTextoWhatsAppLiberarContacto({ solicitud, matches });
     return `https://api.whatsapp.com/send?phone=${telefono}&text=${encodeURIComponent(texto)}`;
   };
 
-  /* ================= ESTADO ================= */
   const handleChangeEstado = (id, nuevoEstado) => {
-    setEstadosLocal((prev) => ({
-      ...prev,
-      [id]: nuevoEstado,
-    }));
+    setEstadosLocal((prev) => ({ ...prev, [id]: nuevoEstado }));
   };
 
-  /* ================= DETALLE ================= */
   const handleVerDetalle = (s) => {
     setSolicitudSeleccionada(s);
     setOpenDetalle(true);
   };
 
-  const handleCloseDetalle = () => {
-    setOpenDetalle(false);
-    setSolicitudSeleccionada(null);
-  };
-
-  /* ================= LOADING ================= */
   if (loading) {
     return (
       <Box p={3} textAlign="center">
@@ -101,7 +79,6 @@ export default function SolicitudesTable({
     );
   }
 
-  /* ================= SIN DATOS ================= */
   if (!solicitudes.length) {
     return (
       <Box p={3} textAlign="center">
@@ -122,7 +99,7 @@ export default function SolicitudesTable({
 
             return (
               <Paper key={s.id} sx={{ p: 2, borderRadius: 2 }}>
-                <Stack spacing={1}>
+                <Stack spacing={1.5}>
                   <Typography fontWeight={600}>{s.nombre}</Typography>
 
                   <Typography variant="body2">
@@ -134,6 +111,7 @@ export default function SolicitudesTable({
                   </Typography>
 
                   <Select
+                    fullWidth
                     size="small"
                     value={estadoActual}
                     onChange={(e) =>
@@ -148,17 +126,17 @@ export default function SolicitudesTable({
                   </Select>
 
                   <Stack spacing={1} mt={1}>
-                    <Button size="small" onClick={() => handleVerDetalle(s)}>
+                    <Button fullWidth onClick={() => handleVerDetalle(s)}>
                       Ver detalle
                     </Button>
 
-                    <Button size="small" onClick={() => onVerMatches(s)}>
+                    <Button fullWidth onClick={() => onVerMatches(s)}>
                       Ver matches
                     </Button>
 
                     {whatsappMatches && (
                       <Button
-                        size="small"
+                        fullWidth
                         variant="contained"
                         color="success"
                         href={whatsappMatches}
@@ -171,7 +149,7 @@ export default function SolicitudesTable({
                     {whatsappLiberar &&
                       ["cerrado", "pagado"].includes(estadoActual) && (
                         <Button
-                          size="small"
+                          fullWidth
                           variant="outlined"
                           color="success"
                           href={whatsappLiberar}
@@ -187,7 +165,7 @@ export default function SolicitudesTable({
           })}
         </Stack>
       ) : (
-        /* ================= DESKTOP ================= */
+        /* ================= DESKTOP / TABLET ================= */
         <Table>
           <TableHead>
             <TableRow>
@@ -275,7 +253,7 @@ export default function SolicitudesTable({
 
       <SolicitudDetalleModal
         open={openDetalle}
-        onClose={handleCloseDetalle}
+        onClose={() => setOpenDetalle(false)}
         solicitud={solicitudSeleccionada}
       />
     </Box>

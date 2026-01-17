@@ -12,7 +12,9 @@ import {
   List,
   ListItem,
   ListItemText,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { colors } from "../styles";
 import { generarTextoWhatsApp } from "../utils/whatsappTemplates";
@@ -25,14 +27,40 @@ const getNivelMatch = (score = 0) => {
   return { label: "Match parcial", color: "default" };
 };
 
+/* 📲 Normalizar WhatsApp Argentina */
+const normalizarWhatsappAR = (telefono) => {
+  if (!telefono) return "";
+
+  let telefonoLimpio = telefono.toString().replace(/\D/g, "");
+
+  // Si ya viene con 549
+  if (telefonoLimpio.startsWith("549")) return telefonoLimpio;
+
+  // Si viene con 54
+  if (telefonoLimpio.startsWith("54"))
+    return `549${telefonoLimpio.slice(2)}`;
+
+  // Número local
+  return `549${telefonoLimpio}`;
+};
+
 export default function MatchesDialog({
   open,
   onClose,
   matches = [],
   solicitud,
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      fullScreen={isMobile}
+    >
       {/* HEADER */}
       <DialogTitle
         sx={{
@@ -43,7 +71,7 @@ export default function MatchesDialog({
       >
         Acompañantes Terapéuticos compatibles
         {solicitud?.nombre && (
-          <Typography variant="body2" sx={{ opacity: 0.9,   color: "#fff", fontWeight: 400, mt: 0.5 }}>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
             Caso: {solicitud.nombre}
           </Typography>
         )}
@@ -58,12 +86,9 @@ export default function MatchesDialog({
           matches.map((at) => {
             const nivel = getNivelMatch(at.score ?? 0);
 
-            /* 📲 WhatsApp seguro */
+            /* 📲 WhatsApp */
             const texto = generarTextoWhatsApp({ at, solicitud });
-            const telefonoLimpio =
-              typeof at.whatsapp === "string"
-                ? at.whatsapp.replace(/\D/g, "")
-                : "";
+            const telefonoLimpio = normalizarWhatsappAR(at.whatsapp);
 
             const whatsappUrl =
               telefonoLimpio.length >= 8
@@ -77,15 +102,20 @@ export default function MatchesDialog({
                 key={at.id}
                 elevation={3}
                 sx={{
-                  p: 3,
+                  p: 2,
                   mb: 2,
                   borderRadius: 2,
                   borderLeft: `5px solid ${colors.primary}`,
                 }}
               >
                 {/* HEADER AT */}
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="subtitle1" fontWeight={600}>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={1}
+                >
+                  <Typography fontWeight={600}>
                     {at.nombre || "AT sin nombre"}
                   </Typography>
 
@@ -96,7 +126,6 @@ export default function MatchesDialog({
                   />
                 </Box>
 
-                {/* INFO GENERAL */}
                 <Typography variant="body2" color="text.secondary">
                   📍 Zonas:{" "}
                   {Array.isArray(at.zonas) && at.zonas.length > 0
@@ -106,16 +135,15 @@ export default function MatchesDialog({
 
                 <Divider sx={{ my: 2 }} />
 
-                {/* MOTIVOS DE MATCH */}
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                  ¿Por qué es compatible con este caso?
+                <Typography fontWeight={600} variant="subtitle2">
+                  ¿Por qué es compatible?
                 </Typography>
 
-                <List dense sx={{ pl: 1 }}>
+                <List dense>
                   {Array.isArray(at.razones) && at.razones.length > 0 ? (
-                    at.razones.map((razon, i) => (
+                    at.razones.map((r, i) => (
                       <ListItem key={i} disablePadding>
-                        <ListItemText primary={`• ${razon}`} />
+                        <ListItemText primary={`• ${r}`} />
                       </ListItem>
                     ))
                   ) : (
@@ -125,28 +153,6 @@ export default function MatchesDialog({
                   )}
                 </List>
 
-                {/* TIPOS DE ACOMPAÑAMIENTO */}
-                {Array.isArray(at.tiposAcompanamiento) &&
-                  at.tiposAcompanamiento.length > 0 && (
-                    <>
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="caption" color="text.secondary">
-                        Tipos de acompañamiento
-                      </Typography>
-
-                      <Box mt={0.5}>
-                        {at.tiposAcompanamiento.map((t) => (
-                          <Chip
-                            key={t}
-                            label={t}
-                            size="small"
-                            sx={{ mr: 0.5, mb: 0.5 }}
-                          />
-                        ))}
-                      </Box>
-                    </>
-                  )}
-
                 {/* CTA */}
                 {whatsappUrl && (
                   <Button
@@ -154,7 +160,7 @@ export default function MatchesDialog({
                     variant="contained"
                     startIcon={<WhatsAppIcon />}
                     sx={{
-                      mt: 3,
+                      mt: 2,
                       backgroundColor: "#25D366",
                       "&:hover": { backgroundColor: "#1ebe5b" },
                     }}
@@ -172,7 +178,7 @@ export default function MatchesDialog({
                   sx={{ mt: 1 }}
                   onClick={() => generarPDFMatch({ at, solicitud })}
                 >
-                  Descargar ficha del caso (PDF)
+                  Descargar ficha (PDF)
                 </Button>
               </Paper>
             );
@@ -180,12 +186,8 @@ export default function MatchesDialog({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{ color: colors.primary, borderColor: colors.primary }}
-        >
+      <DialogActions>
+        <Button onClick={onClose} variant="outlined">
           Cerrar
         </Button>
       </DialogActions>
